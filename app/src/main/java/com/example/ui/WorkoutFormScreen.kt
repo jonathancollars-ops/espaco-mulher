@@ -19,6 +19,7 @@ import androidx.navigation.NavController
 import com.example.data.local.CustomExercise
 import com.example.data.local.Workout
 import com.example.data.local.WorkoutExercise
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,11 +32,15 @@ fun WorkoutFormScreen(navController: NavController, viewModel: PilatesViewModel,
 
     LaunchedEffect(workoutId) {
         if (workoutId != null) {
-            viewModel.getWorkoutsForPatient(patientId).collect { workouts ->
-                workouts.find { it.id == workoutId }?.let { title = it.title }
+            launch {
+                viewModel.getWorkoutsForPatient(patientId).collect { workouts ->
+                    workouts.find { it.id == workoutId }?.let { title = it.title }
+                }
             }
-            viewModel.getExercisesForWorkout(workoutId).collect { exercises ->
-                currentExercises = exercises.sortedBy { it.orderIndex }
+            launch {
+                viewModel.getExercisesForWorkout(workoutId).collect { exercises ->
+                    currentExercises = exercises.sortedBy { it.orderIndex }
+                }
             }
         }
     }

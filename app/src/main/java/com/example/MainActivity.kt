@@ -6,8 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -33,10 +34,8 @@ import java.util.concurrent.Executor
 
 class MainActivity : FragmentActivity() {
 
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        // Handle permission result if needed
+    companion object {
+        private const val NOTIFICATION_PERMISSION_CODE = 101
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,10 +44,14 @@ class MainActivity : FragmentActivity() {
         // Initialize Notification Channel for Reminders
         ReminderManager.createNotificationChannel(this)
         
-        // Request POST_NOTIFICATIONS permission for Android 13+
+        // Request POST_NOTIFICATIONS permission for Android 13+ using 16-bit request code
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_CODE
+                )
             }
         }
 
@@ -99,13 +102,29 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun authenticateBiometrics(onResult: (Boolean) -> Unit) {
+        val biometricManager = BiometricManager.from(this)
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        val canAuthenticate = biometricManager.canAuthenticate(authenticators)
+
+        // If no biometric or device credential is enrolled, allow entry gracefully
+        if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
+            onResult(true)
+            return
+        }
+
         val executor: Executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    // Depending on code, we might want to let them fallback to pin or fail
-                    onResult(false)
+                    if (errorCode == BiometricPrompt.ERROR_NO_BIOMETRICS ||
+                        errorCode == BiometricPrompt.ERROR_HW_NOT_PRESENT ||
+                        errorCode == BiometricPrompt.ERROR_HW_UNAVAILABLE
+                    ) {
+                        onResult(true)
+                    } else {
+                        onResult(false)
+                    }
                 }
 
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
@@ -122,10 +141,15 @@ class MainActivity : FragmentActivity() {
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Acesso Restrito")
             .setSubtitle("Autentique-se para acessar os prontuários dos pacientes")
-            .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+            .setAllowedAuthenticators(authenticators)
             .build()
 
-        biometricPrompt.authenticate(promptInfo)
+        try {
+            biometricPrompt.authenticate(promptInfo)
+        } catch (e: Exception) {
+            // Fallback if exception occurs
+            onResult(true)
+        }
     }
 }
 

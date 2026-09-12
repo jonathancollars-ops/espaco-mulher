@@ -122,6 +122,13 @@ object PdfService {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Compartilhar Avaliação"))
+        try {
+            val chooser = Intent.createChooser(intent, "Compartilhar Avaliação").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

@@ -40,11 +40,9 @@ object UpdateChecker {
                     val body = jsonObject.getString("body")
                     val htmlUrl = jsonObject.getString("html_url")
 
-                    // Simple string comparison for versions (assuming v1.0.0 format)
-                    val currentNum = currentVersion.replace("v", "").replace(".", "")
-                    val latestNum = tagName.replace("v", "").replace(".", "")
+                    val isNewer = isNewerVersion(tagName, currentVersion)
 
-                    if (latestNum > currentNum) {
+                    if (isNewer) {
                         _updateState.value = UpdateInfo(
                             isAvailable = true,
                             newVersion = tagName,
@@ -65,15 +63,47 @@ object UpdateChecker {
         }
     }
 
-    private fun showUpdateDialog(context: Context, newVersion: String, releaseNotes: String, downloadUrl: String) {
-        android.app.AlertDialog.Builder(context)
-            .setTitle("Atualização Disponível")
-            .setMessage("Uma nova versão ($newVersion) está disponível.\n\nNotas:\n$releaseNotes")
-            .setPositiveButton("Baixar") { _, _ ->
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl))
-                context.startActivity(intent)
+    private fun isNewerVersion(latest: String, current: String): Boolean {
+        return try {
+            val latestParts = latest.trimStart('v').split(".").map { it.filter { c -> c.isDigit() }.toIntOrNull() ?: 0 }
+            val currentParts = current.trimStart('v').split(".").map { it.filter { c -> c.isDigit() }.toIntOrNull() ?: 0 }
+            val maxLen = maxOf(latestParts.size, currentParts.size)
+            for (i in 0 until maxLen) {
+                val l = latestParts.getOrElse(i) { 0 }
+                val c = currentParts.getOrElse(i) { 0 }
+                if (l > c) return true
+                if (l < c) return false
             }
-            .setNegativeButton("Agora não", null)
-            .show()
+            false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun showUpdateDialog(context: Context, newVersion: String, releaseNotes: String, downloadUrl: String) {
+        try {
+            val activity = context as? android.app.Activity
+            if (activity != null && (activity.isFinishing || activity.isDestroyed)) {
+                return
+            }
+
+            android.app.AlertDialog.Builder(context)
+                .setTitle("Atualização Disponível")
+                .setMessage("Uma nova versão ($newVersion) está disponível.\n\nNotas:\n$releaseNotes")
+                .setPositiveButton("Baixar") { _, _ ->
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Log.e("UpdateChecker", "Failed to launch download intent", e)
+                    }
+                }
+                .setNegativeButton("Agora não", null)
+                .show()
+        } catch (e: Exception) {
+            Log.e("UpdateChecker", "Failed to display update dialog safely", e)
+        }
     }
 }
