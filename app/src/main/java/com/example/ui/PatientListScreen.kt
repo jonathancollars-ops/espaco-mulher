@@ -97,7 +97,7 @@ fun PatientListScreen(navController: NavController, viewModel: PilatesViewModel)
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(filteredPatients) { patient ->
+                items(filteredPatients, key = { it.id }) { patient ->
                     PatientCard(
                         patient = patient,
                         onClickEdit = { navController.navigate("patient_form?patientId=\${patient.id}") },
@@ -119,7 +119,12 @@ fun PatientCard(
 ) {
     val haptic = LocalHapticFeedback.current
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClickEdit()
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)

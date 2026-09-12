@@ -1,9 +1,14 @@
 package com.example.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -51,7 +56,22 @@ fun PilatesApp(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(getScreenTitle(currentRoute)) },
+                title = {
+                    AnimatedContent(
+                        targetState = getScreenTitle(currentRoute),
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(220, delayMillis = 80)) +
+                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Down, animationSpec = tween(220)))
+                                .togetherWith(
+                                    fadeOut(animationSpec = tween(80)) +
+                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down, animationSpec = tween(80))
+                                )
+                        },
+                        label = "TopBarTitleAnimation"
+                    ) { titleText ->
+                        Text(titleText)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -91,43 +111,169 @@ fun PilatesApp(
             enterTransition = {
                 slideIntoContainer(
                     towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = tween(400)
-                ) + fadeIn(animationSpec = tween(400))
+                    animationSpec = tween(380, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300))
             },
             exitTransition = {
                 slideOutOfContainer(
                     towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = tween(400)
-                ) + fadeOut(animationSpec = tween(400))
+                    animationSpec = tween(380, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(300))
             },
             popEnterTransition = {
                 slideIntoContainer(
                     towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(400)
-                ) + fadeIn(animationSpec = tween(400))
+                    animationSpec = tween(380, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300))
             },
             popExitTransition = {
                 slideOutOfContainer(
                     towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(400)
-                ) + fadeOut(animationSpec = tween(400))
+                    animationSpec = tween(380, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(300))
             }
         ) {
             composable("home") {
                 HomeScreen(navController)
             }
-            composable("patient_list") {
+            composable(
+                route = "patient_list",
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(300))
+                },
+                exitTransition = {
+                    if (targetState.destination.route?.startsWith("patient_form") == true) {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                            animationSpec = tween(350, easing = FastOutSlowInEasing),
+                            targetOffset = { it / 4 }
+                        ) + scaleOut(
+                            targetScale = 0.94f,
+                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(220))
+                    } else {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                            animationSpec = tween(380, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(300))
+                    }
+                },
+                popEnterTransition = {
+                    if (initialState.destination.route?.startsWith("patient_form") == true) {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.End,
+                            animationSpec = tween(350, easing = FastOutSlowInEasing),
+                            initialOffset = { -it / 4 }
+                        ) + scaleIn(
+                            initialScale = 0.94f,
+                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(300))
+                    } else {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                            animationSpec = tween(380, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(300))
+                    }
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(300))
+                }
+            ) {
                 PatientListScreen(navController, viewModel)
             }
-            composable("patient_form?patientId={patientId}") { backStackEntry ->
+            composable(
+                route = "patient_form?patientId={patientId}",
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(280))
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + scaleOut(
+                        targetScale = 0.95f,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(220))
+                },
+                popEnterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + scaleIn(
+                        initialScale = 0.95f,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(280))
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + scaleOut(
+                        targetScale = 0.92f,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(250))
+                }
+            ) { backStackEntry ->
                 val patientId = backStackEntry.arguments?.getString("patientId")?.toLongOrNull()
                 PatientFormScreen(navController, viewModel, patientId)
             }
-            composable("assessment_form/{patientId}") { backStackEntry ->
+            composable(
+                route = "assessment_form/{patientId}",
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(280))
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + scaleOut(
+                        targetScale = 0.92f,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(250))
+                }
+            ) { backStackEntry ->
                 val patientId = backStackEntry.arguments?.getString("patientId")?.toLongOrNull() ?: 0L
                 AssessmentFormScreen(navController, viewModel, patientId)
             }
-            composable("workouts/{patientId}") { backStackEntry ->
+            composable(
+                route = "workouts/{patientId}",
+                enterTransition = {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(380, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(280))
+                },
+                popExitTransition = {
+                    slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + scaleOut(
+                        targetScale = 0.92f,
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(250))
+                }
+            ) { backStackEntry ->
                 val patientId = backStackEntry.arguments?.getString("patientId")?.toLongOrNull() ?: 0L
                 WorkoutsScreen(navController, viewModel, patientId)
             }
